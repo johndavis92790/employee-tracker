@@ -19,6 +19,9 @@
 // THEN I am prompted to select an employee to update and their new role and this information is updated in the database
 
 const inquirer = require('inquirer');
+const consoleTable = require('console.table');
+const mysql = require('mysql2');
+const db = require('./db/connection');
 
 //required classes and functions from other files
 // const Engineer = require('./lib/Engineer.js');
@@ -39,13 +42,13 @@ const initialPrompt = () => {
   ])
   .then(choice => {
     if (choice.type[0] === 'View all departments') {
-
+      viewAllDept();
     } else if (choice.type[0] === 'View all roles'){
-
+      viewAllRoles();
     } else if (choice.type[0] === 'View all employees'){
-
+      viewAllEmp();
     } else if (choice.type[0] === 'Add a department'){
-
+      
     } else if (choice.type[0] === 'Add a role'){
 
     } else if (choice.type[0] === 'Add an employee'){
@@ -53,6 +56,43 @@ const initialPrompt = () => {
     } else if (choice.type[0] === 'Update an employee role'){
 
     }
+  });
+};
+
+const viewAllDept = () => {
+
+  db.promise().query('SELECT * FROM department')
+  .then( ([rows]) => {
+    console.table(rows);
+  })
+  .catch(console.log)
+  .then( () => {
+    initialPrompt();
+  });
+  
+};
+
+const viewAllRoles = () => {
+
+  db.promise().query('SELECT * FROM role')
+  .then( ([rows]) => {
+    console.table(rows);
+  })
+  .catch(console.log)
+  .then( () => {
+    initialPrompt();
+  });
+};
+
+const viewAllEmp = () => {
+
+  db.promise().query('SELECT * FROM employee')
+  .then( ([rows]) => {
+    console.table(rows);
+  })
+  .catch(console.log)
+  .then( () => {
+    initialPrompt();
   });
 };
 
