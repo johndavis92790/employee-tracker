@@ -1,6 +1,6 @@
-DROP TABLE IF EXISTS department;
-DROP TABLE IF EXISTS role;
 DROP TABLE IF EXISTS employee;
+DROP TABLE IF EXISTS role;
+DROP TABLE IF EXISTS department;
 
 CREATE TABLE department (
   id INTEGER AUTO_INCREMENT PRIMARY KEY,
@@ -30,6 +30,6 @@ CREATE TABLE employee (
   manager_id INTEGER,
   CONSTRAINT fk_manager
     FOREIGN KEY (manager_id)
-    REFERENCES manager(id)
+    REFERENCES employee(id)
     ON DELETE SET NULL
 );
