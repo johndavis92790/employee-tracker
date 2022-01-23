@@ -54,7 +54,7 @@ const initialPrompt = () => {
     } else if (choice.type[0] === 'Add an employee'){
       addEmp();
     } else if (choice.type[0] === 'Update an employee role'){
-      updateEmp();
+      getEmpNames();
     }
   });
 };
@@ -89,8 +89,9 @@ const viewAllRoles = () => {
 const viewAllEmp = () => {
   db.promise().query(`
   SELECT e.id AS 'Employee ID#',
-      e.first_name AS'First Name', 
-      e.last_name AS'Last Name', 
+      e.first_name AS 'First Name', 
+      e.last_name AS 'Last Name', 
+      role.title AS 'Title',
       role.salary AS Salary, 
       department.name AS Department, 
       m.first_name AS 'Manager First Name',
@@ -230,40 +231,60 @@ const addEmp = () => {
   });
 };
 
-const updateEmp = () => {
-  return inquirer.prompt(empQuestions)
-  .then(emp => {
-    console.log(emp);
-    if (emp.confirmManager){
-      db.promise().query(`
-      UPDATE employee
-      SET first_name = '${emp.empFirstName}', last_name = '${emp.empLastName}', role_id = '${emp.empRole}'
-      WHERE id = 1;
-      INSERT INTO employee
-        (first_name, last_name, role_id)
-      VALUES
-        ('${emp.empFirstName}', '${emp.empLastName}', ${emp.empRole});`
-      )
-      .catch(console.log)
-      .then( () => {
-        console.log('Employee added successful!');
-        initialPrompt();
-      });
-    } else {
-      db.promise().query(`
-      INSERT INTO employee
-        (first_name, last_name, role_id, manager_id)
-      VALUES
-        ('${emp.empFirstName}', '${emp.empLastName}', ${emp.empRole}, ${emp.empManager});`
-      )
-      .catch(console.log)
-      .then( () => {
-        console.log('Employee added successful!');
-        initialPrompt();
-      });
+const updateEmp = (empArray) => {
+  return inquirer.prompt([
+    {
+        type: 'checkbox',
+        name: 'type',
+        choices: empArray
+    },
+    {
+      type: 'input',
+      name: 'empNewRole',
+      message: `What is the employee's new role? (Required)`,
+      validate: empNewRoleInput => {
+        if (empNewRoleInput) {
+          return true;
+        } else {
+          console.log(`Please enter the employee's new role!`);
+          return false;
+        }
+      }
     }
+  ])
+  .then(emp => {
+    console.log('test', emp);
+    var name = emp.type;
+    var newName = name.toString(name);
+    var nameArray = newName.split(' ');
+    db.promise().query(`
+    UPDATE employee
+    SET role_id = ${emp.empNewRole}
+    WHERE id = ${nameArray[0]};`
+    )
+    .catch(console.log)
+    .then( () => {
+      console.log(`Changed employee's role successfully!`);
+      initialPrompt();
+    });
   });
 };
+
+function getEmpNames(){
+  db.promise().query(`SELECT * FROM employee;`)
+  .then( ([rows]) => {
+    // console.log(rows);
+    var namesArray = [];
+    rows.forEach((name) => {
+      namesArray.push(name.id + ' ' + name.first_name + ' ' + name.last_name);
+    });
+    return namesArray;
+  })
+  .catch(console.log)
+  .then( (list) => {
+    updateEmp(list);
+  });
+}
 
 const empQuestions =
 [ 
