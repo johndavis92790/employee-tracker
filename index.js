@@ -1,8 +1,10 @@
+// required packages
 const inquirer = require('inquirer');
 const consoleTable = require('console.table');
 const mysql = require('mysql2');
 const db = require('./db/connection');
 
+// main menu in inquirer
 const initialPrompt = () => {
   return inquirer.prompt([ 
     {
@@ -19,6 +21,7 @@ const initialPrompt = () => {
       }
     }
   ])
+  // runs async function depending on which choice was made
   .then(choice => {
     if (choice.type[0] === 'View all departments') {
       viewAllDept();
@@ -38,6 +41,7 @@ const initialPrompt = () => {
   });
 };
 
+// to view all departments from the department table
 const viewAllDept = () => {
   db.promise().query('SELECT * FROM department;')
   .then( ([rows]) => {
@@ -49,6 +53,7 @@ const viewAllDept = () => {
   });
 };
 
+// to view all roles from the role table
 const viewAllRoles = () => {
   db.promise().query(`
   SELECT role.*, department.name AS department
@@ -64,6 +69,7 @@ const viewAllRoles = () => {
   });
 };
 
+// to view all employees from the employee table, including data from the role and department tables
 const viewAllEmp = () => {
   db.promise().query(`
   SELECT e.id AS 'Employee ID#',
@@ -88,6 +94,7 @@ const viewAllEmp = () => {
   });
 };
 
+// to add a new department to the department table
 const addDept = () => {
   return inquirer.prompt([ 
     {
@@ -119,6 +126,7 @@ const addDept = () => {
   });
 };
 
+// to add a new role to the role table, including the role's salary and the department id from the department table
 async function addRole() {
   var deptArray  = await getDepts;
   return inquirer.prompt([ 
@@ -181,10 +189,12 @@ async function addRole() {
   });
 };
 
+// to add a new employee to the employee table
 async function addEmp() {
   var rolesArray = await getRoles;
   var managersArray = await getManagerNames;
   return inquirer.prompt([ 
+    // asks the employee's first and last names
     {
       type: 'input',
       name: 'empFirstName',
@@ -211,6 +221,7 @@ async function addEmp() {
         }
       }
     },
+    // asks their role id from the role table, which auotmatically matches it to the correct department number also.
     {
       type: 'checkbox',
       name: 'empRole',
@@ -225,12 +236,14 @@ async function addEmp() {
       },
       choices: rolesArray
     },
+    // asks if this employee is a manager
     {
       type: 'confirm',
       name: 'confirmManager',
       message: 'Is this employee a manger?',
       default: false
     },
+    // if no, it allows you to choose a manager for this employee
     {
       type: 'checkbox',
       name: 'empManager',
@@ -255,6 +268,7 @@ async function addEmp() {
     var newManager = manager.toString(manager);
     var managerArray = newManager.split(' ');
     if (emp.confirmManager){
+      // db insert if the new employee is a manager
       db.promise().query(`
       INSERT INTO employee
         (first_name, last_name, role_id)
@@ -267,6 +281,7 @@ async function addEmp() {
         initialPrompt();
       });
     } else {
+      // db insert if the new employee is not a manager
       db.promise().query(`
       INSERT INTO employee
         (first_name, last_name, role_id, manager_id)
@@ -282,6 +297,7 @@ async function addEmp() {
   });
 };
 
+// to update an employee's role to the employee table
 async function updateEmp() {
   var empArray = await getEmpNames;
   var rolesArray = await getRoles;
@@ -325,6 +341,7 @@ async function updateEmp() {
   });
 };
 
+// async promise function to get a list of the departments from that table
 const getDepts = new Promise(function(resolve){
   db.promise().query(`SELECT * FROM department;`)
   .then( ([rows]) => {
@@ -340,6 +357,7 @@ const getDepts = new Promise(function(resolve){
   });
 });
 
+// async promise function to get a list of the roles from that table
 const getRoles = new Promise(function(resolve){
   db.promise().query(`SELECT * FROM role;`)
   .then( ([rows]) => {
@@ -355,6 +373,7 @@ const getRoles = new Promise(function(resolve){
   });
 });
 
+// async promise function to get a list of the employees from that table
 const getEmpNames = new Promise(function(resolve){
   db.promise().query(`SELECT * FROM employee;`)
   .then( ([rows]) => {
@@ -370,6 +389,7 @@ const getEmpNames = new Promise(function(resolve){
   });
 });
 
+// async promise function to get a list of the managers from the employee table
 const getManagerNames = new Promise(function(resolve){
   db.promise().query(`
   SELECT *
@@ -389,4 +409,5 @@ const getManagerNames = new Promise(function(resolve){
   });
 });
 
+// initial function
 initialPrompt();
