@@ -52,7 +52,7 @@ const initialPrompt = () => {
     } else if (choice.type[0] === 'Add a role'){
       addRole();
     } else if (choice.type[0] === 'Add an employee'){
-      addEmp();
+      getRoles();
     } else if (choice.type[0] === 'Update an employee role'){
       getEmpNames();
     }
@@ -199,16 +199,85 @@ const addRole = () => {
   });
 };
 
-const addEmp = () => {
-  return inquirer.prompt(empQuestions)
+const addEmp = (rolesArray, managersArray) => {
+  console.log('#6', rolesArray);
+  return inquirer.prompt([ 
+    {
+      type: 'input',
+      name: 'empFirstName',
+      message: `What the employee's first name? (Required)`,
+      validate: empFirstNameInput => {
+        if (empFirstNameInput) {
+          return true;
+        } else {
+          console.log(`Please enter the employee's first name!`);
+          return false;
+        }
+      }
+    },
+    {
+      type: 'input',
+      name: 'empLastName',
+      message: `What the employee's last name? (Required)`,
+      validate: empLastNameInput => {
+        if (empLastNameInput) {
+          return true;
+        } else {
+          console.log(`Please enter the employee's last name!`);
+          return false;
+        }
+      }
+    },
+    {
+      type: 'checkbox',
+      name: 'empRole',
+      message: `What the employee's role? (Required)`,
+      validate: empRoleInput => {
+        if (empRoleInput) {
+          return true;
+        } else {
+          console.log(`Please enter the employee's role!`);
+          return false;
+        }
+      },
+      choices: rolesArray
+    },
+    {
+      type: 'confirm',
+      name: 'confirmManager',
+      message: 'Is this employee a manger?',
+      default: false
+    },
+    {
+      type: 'checkbox',
+      name: 'empManager',
+      message: `Who is the employee's manager? (Required)`,
+      validate: empManagerInput => {
+        if (empManagerInput) {
+          return true;
+        } else {
+          console.log(`Please enter the employee's manager!`);
+          return false;
+        }
+      },
+      when: ({confirmManager}) => !confirmManager,
+      choices: managersArray
+    }
+  ])
   .then(emp => {
     console.log(emp);
+    var role = emp.empRole;
+    var newRole = role.toString(role);
+    var roleArray = newRole.split(' ');
+    var manager = emp.empManager;
+    var newManager = manager.toString(manager);
+    var managerArray = newManager.split(' ');
     if (emp.confirmManager){
       db.promise().query(`
       INSERT INTO employee
         (first_name, last_name, role_id)
       VALUES
-        ('${emp.empFirstName}', '${emp.empLastName}', ${emp.empRole});`
+        ('${emp.empFirstName}', '${emp.empLastName}', ${roleArray[0]});`
       )
       .catch(console.log)
       .then( () => {
@@ -220,7 +289,7 @@ const addEmp = () => {
       INSERT INTO employee
         (first_name, last_name, role_id, manager_id)
       VALUES
-        ('${emp.empFirstName}', '${emp.empLastName}', ${emp.empRole}, ${emp.empManager});`
+        ('${emp.empFirstName}', '${emp.empLastName}', ${roleArray[0]}, ${managerArray[0]});`
       )
       .catch(console.log)
       .then( () => {
@@ -253,7 +322,6 @@ const updateEmp = (empArray) => {
     }
   ])
   .then(emp => {
-    console.log('test', emp);
     var name = emp.type;
     var newName = name.toString(name);
     var nameArray = newName.split(' ');
@@ -269,6 +337,23 @@ const updateEmp = (empArray) => {
     });
   });
 };
+
+function getRoles(){
+  db.promise().query(`SELECT * FROM role;`)
+  .then( ([rows]) => {
+    var rolesArray = [];
+    rows.forEach((roles) => {
+      rolesArray.push(roles.id + ' ' + roles.title);
+    });
+    console.log('#1', rolesArray);
+    return rolesArray;
+  })
+  .catch(console.log)
+  .then( (rolesArray) => {
+    console.log('#2', rolesArray);
+    getManagerNames(rolesArray);
+  });
+}
 
 function getEmpNames(){
   db.promise().query(`SELECT * FROM employee;`)
@@ -286,68 +371,27 @@ function getEmpNames(){
   });
 }
 
-const empQuestions =
-[ 
-  {
-    type: 'input',
-    name: 'empFirstName',
-    message: `What the employee's first name? (Required)`,
-    validate: empFirstNameInput => {
-      if (empFirstNameInput) {
-        return true;
-      } else {
-        console.log(`Please enter the employee's first name!`);
-        return false;
-      }
-    }
-  },
-  {
-    type: 'input',
-    name: 'empLastName',
-    message: `What the employee's last name? (Required)`,
-    validate: empLastNameInput => {
-      if (empLastNameInput) {
-        return true;
-      } else {
-        console.log(`Please enter the employee's last name!`);
-        return false;
-      }
-    }
-  },
-  {
-    type: 'input',
-    name: 'empRole',
-    message: `What the employee's role? (Required)`,
-    validate: empRoleInput => {
-      if (empRoleInput) {
-        return true;
-      } else {
-        console.log(`Please enter the employee's role!`);
-        return false;
-      }
-    }
-  },
-  {
-    type: 'confirm',
-    name: 'confirmManager',
-    message: 'Is this employee a manger?',
-    default: false
-  },
-  {
-    type: 'input',
-    name: 'empManager',
-    message: `Who is the employee's manager? (Required)`,
-    validate: empManagerInput => {
-      if (empManagerInput) {
-        return true;
-      } else {
-        console.log(`Please enter the employee's manager!`);
-        return false;
-      }
-    },
-    when: ({confirmManager}) => !confirmManager
-  }
-];
+function getManagerNames(rolesArray){
+  console.log('#3', rolesArray);
+  db.promise().query(`
+  SELECT *
+  FROM employee e 
+  WHERE e.manager_id IS NULL;
+  `)
+  .then( ([rows]) => {
+    var managersArray = [];
+    rows.forEach((name) => {
+      managersArray.push(name.id + ' ' + name.first_name + ' ' + name.last_name);
+    });
+    console.log('#4', rolesArray);
+    return rolesArray, managersArray;
+  })
+  .catch(console.log)
+  .then( (rolesArray, managersArray) => {
+    console.log('#5', rolesArray);
+    addEmp(rolesArray, managersArray);
+  });
+}
 
 initialPrompt();
 
