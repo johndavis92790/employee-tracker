@@ -34,7 +34,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 ## Walk-Through Videos
 
-[Video Link](https://bootcampspot.instructuremedia.com/embed/89eb7520-292b-43b9-93e9-e0e416c9d7f0)
+[Video Link](https://youtu.be/IVYP4tUXO9o)
 
 
 ## Questions?
