@@ -48,33 +48,35 @@ const initialPrompt = () => {
     } else if (choice.type[0] === 'View all employees'){
       viewAllEmp();
     } else if (choice.type[0] === 'Add a department'){
-      
+      addDept();
     } else if (choice.type[0] === 'Add a role'){
-
+      addRole();
     } else if (choice.type[0] === 'Add an employee'){
-
+      addEmp();
     } else if (choice.type[0] === 'Update an employee role'){
-
+      updateEmp();
     }
   });
 };
 
 const viewAllDept = () => {
-
-  db.promise().query('SELECT * FROM department')
+  db.promise().query('SELECT * FROM department;')
   .then( ([rows]) => {
+    console.log(rows);
     console.table(rows);
   })
   .catch(console.log)
   .then( () => {
     initialPrompt();
   });
-  
 };
 
 const viewAllRoles = () => {
-
-  db.promise().query('SELECT * FROM role')
+  db.promise().query(`
+  SELECT role.*, department.name AS department
+  FROM role
+  LEFT JOIN department ON role.department_id = department.id;
+  `)
   .then( ([rows]) => {
     console.table(rows);
   })
@@ -85,8 +87,19 @@ const viewAllRoles = () => {
 };
 
 const viewAllEmp = () => {
-
-  db.promise().query('SELECT * FROM employee')
+  db.promise().query(`
+  SELECT e.id AS 'Employee ID#',
+      e.first_name AS'First Name', 
+      e.last_name AS'Last Name', 
+      role.salary AS Salary, 
+      department.name AS Department, 
+      m.first_name AS 'Manager First Name',
+      m.last_name AS 'Manager Last Name'
+  FROM employee e
+  LEFT JOIN role ON e.role_id = role.id
+  LEFT JOIN department ON role.department_id = department.id
+  LEFT JOIN employee m ON m.id = e.manager_id;
+  `)
   .then( ([rows]) => {
     console.table(rows);
   })
@@ -95,6 +108,225 @@ const viewAllEmp = () => {
     initialPrompt();
   });
 };
+
+const addDept = () => {
+  return inquirer.prompt([ 
+    {
+      type: 'input',
+      name: 'departmentName',
+      message: `What the department's name? (Required)`,
+      validate: departmentInput => {
+        if (departmentInput) {
+          return true;
+        } else {
+          console.log(`Please enter the department's name!`);
+          return false;
+        }
+      }
+    },
+  ])
+  .then(choice => {
+    db.promise().query(`
+    INSERT INTO department
+      (name)
+    VALUES
+      ('${choice.departmentName}');`
+    )
+    .catch(console.log)
+    .then( () => {
+      console.log('Department added successful!');
+      initialPrompt();
+    });
+  });
+};
+
+// salary, and department
+const addRole = () => {
+  return inquirer.prompt([ 
+    {
+      type: 'input',
+      name: 'roleTitle',
+      message: `What the role's title? (Required)`,
+      validate: roleTitleInput => {
+        if (roleTitleInput) {
+          return true;
+        } else {
+          console.log(`Please enter the role's title!`);
+          return false;
+        }
+      }
+    },
+    {
+      type: 'input',
+      name: 'roleSalary',
+      message: `What the role's salary? (Required)`,
+      validate: roleSalaryInput => {
+        if (roleSalaryInput) {
+          return true;
+        } else {
+          console.log(`Please enter the role's salary!`);
+          return false;
+        }
+      }
+    },
+    {
+      type: 'input',
+      name: 'roleDept',
+      message: `What the role's department? (Required)`,
+      validate: roleDeptInput => {
+        if (roleDeptInput) {
+          return true;
+        } else {
+          console.log(`Please enter the role's department!`);
+          return false;
+        }
+      }
+    },
+  ])
+  .then(role => {
+    db.promise().query(`
+    INSERT INTO role
+      (title, salary, department_id)
+    VALUES
+      ('${role.roleTitle}', ${role.roleSalary}, ${role.roleDept});`
+    )
+    .catch(console.log)
+    .then( () => {
+      console.log('Role added successful!');
+      initialPrompt();
+    });
+  });
+};
+
+const addEmp = () => {
+  return inquirer.prompt(empQuestions)
+  .then(emp => {
+    console.log(emp);
+    if (emp.confirmManager){
+      db.promise().query(`
+      INSERT INTO employee
+        (first_name, last_name, role_id)
+      VALUES
+        ('${emp.empFirstName}', '${emp.empLastName}', ${emp.empRole});`
+      )
+      .catch(console.log)
+      .then( () => {
+        console.log('Employee added successful!');
+        initialPrompt();
+      });
+    } else {
+      db.promise().query(`
+      INSERT INTO employee
+        (first_name, last_name, role_id, manager_id)
+      VALUES
+        ('${emp.empFirstName}', '${emp.empLastName}', ${emp.empRole}, ${emp.empManager});`
+      )
+      .catch(console.log)
+      .then( () => {
+        console.log('Employee added successful!');
+        initialPrompt();
+      });
+    }
+  });
+};
+
+const updateEmp = () => {
+  return inquirer.prompt(empQuestions)
+  .then(emp => {
+    console.log(emp);
+    if (emp.confirmManager){
+      db.promise().query(`
+      UPDATE employee
+      SET first_name = '${emp.empFirstName}', last_name = '${emp.empLastName}', role_id = '${emp.empRole}'
+      WHERE id = 1;
+      INSERT INTO employee
+        (first_name, last_name, role_id)
+      VALUES
+        ('${emp.empFirstName}', '${emp.empLastName}', ${emp.empRole});`
+      )
+      .catch(console.log)
+      .then( () => {
+        console.log('Employee added successful!');
+        initialPrompt();
+      });
+    } else {
+      db.promise().query(`
+      INSERT INTO employee
+        (first_name, last_name, role_id, manager_id)
+      VALUES
+        ('${emp.empFirstName}', '${emp.empLastName}', ${emp.empRole}, ${emp.empManager});`
+      )
+      .catch(console.log)
+      .then( () => {
+        console.log('Employee added successful!');
+        initialPrompt();
+      });
+    }
+  });
+};
+
+const empQuestions =
+[ 
+  {
+    type: 'input',
+    name: 'empFirstName',
+    message: `What the employee's first name? (Required)`,
+    validate: empFirstNameInput => {
+      if (empFirstNameInput) {
+        return true;
+      } else {
+        console.log(`Please enter the employee's first name!`);
+        return false;
+      }
+    }
+  },
+  {
+    type: 'input',
+    name: 'empLastName',
+    message: `What the employee's last name? (Required)`,
+    validate: empLastNameInput => {
+      if (empLastNameInput) {
+        return true;
+      } else {
+        console.log(`Please enter the employee's last name!`);
+        return false;
+      }
+    }
+  },
+  {
+    type: 'input',
+    name: 'empRole',
+    message: `What the employee's role? (Required)`,
+    validate: empRoleInput => {
+      if (empRoleInput) {
+        return true;
+      } else {
+        console.log(`Please enter the employee's role!`);
+        return false;
+      }
+    }
+  },
+  {
+    type: 'confirm',
+    name: 'confirmManager',
+    message: 'Is this employee a manger?',
+    default: false
+  },
+  {
+    type: 'input',
+    name: 'empManager',
+    message: `Who is the employee's manager? (Required)`,
+    validate: empManagerInput => {
+      if (empManagerInput) {
+        return true;
+      } else {
+        console.log(`Please enter the employee's manager!`);
+        return false;
+      }
+    },
+    when: ({confirmManager}) => !confirmManager
+  }
+];
 
 initialPrompt();
 
